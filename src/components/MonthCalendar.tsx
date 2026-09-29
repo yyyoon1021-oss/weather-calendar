@@ -4,6 +4,7 @@ import type { CalendarEvent } from '../types'
 import type { WeatherData } from '../lib/weather'
 import { weatherInfo } from '../lib/weather'
 import { ChevronLeft, ChevronRight, Pin, Plus } from './Icons'
+import { eventBarClass, isEventOnDate } from '../lib/eventLayout'
 
 const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 const colorClasses = {
@@ -48,14 +49,14 @@ export function MonthCalendar({ month, selectedDate, events, onMonthChange, onDa
     <section className="grid grid-cols-7">
       {days.map(day => {
         const key = format(day, 'yyyy-MM-dd')
-        const dayEvents = events.filter(event => event.startDate === key).sort((a, b) => a.startTime.localeCompare(b.startTime))
+        const dayEvents = events.filter(event => isEventOnDate(event, key)).sort((a, b) => a.allDay === b.allDay ? a.startTime.localeCompare(b.startTime) : a.allDay ? -1 : 1)
         const muted = !isSameMonth(day, month)
         const weekday = day.getDay()
         const dailyWeather = weather?.daily[key]
         return <button key={key} onClick={() => onDateSelect(day)} className={`min-h-36 border-b border-[#E3E6EB] px-1.5 py-3 text-left align-top ${muted ? 'opacity-0 pointer-events-none' : ''}`}>
           <div className="flex items-center"><span className={`grid size-10 place-items-center rounded-full text-[27px] font-semibold leading-none ${isSameDay(day, today) ? 'bg-[#1F5FD1] text-white' : weekday === 0 ? 'text-[#D0342C]' : weekday === 6 ? 'text-[#1F5FD1]' : 'text-[#17191C]'}`}>{format(day, 'd')}</span>{dailyWeather && <span className="text-lg">{weatherInfo(dailyWeather.code, isSameDay(day, today) && new Date().getHours() >= 19).emoji}</span>}</div>
           <div className="mt-1 space-y-1">
-            {dayEvents.slice(0, 3).map(event => <div key={event.id} className={`truncate rounded-md px-1.5 py-0.5 text-[14px] font-semibold ${colorClasses[event.color]}`}>{event.title}</div>)}
+            {dayEvents.slice(0, 3).map(event => <div key={event.id} className={`truncate px-1.5 py-0.5 text-[14px] font-semibold ${eventBarClass(event, key)} ${colorClasses[event.color]}`}>{event.startDate === key ? event.title : '↳ 이어짐'}</div>)}
             {dayEvents.length > 3 && <div className="pl-1 text-sm font-semibold text-[#5B6270]">+{dayEvents.length - 3}</div>}
           </div>
         </button>
