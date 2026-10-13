@@ -6,6 +6,8 @@ import { ChevronLeft, Plus } from './Icons'
 import type { WeatherData } from '../lib/weather'
 import { weatherInfo } from '../lib/weather'
 import { WeatherCard } from './WeatherCard'
+import { WeatherAlertList } from './WeatherAlertList'
+import { alertsForRange } from '../lib/weatherAlerts'
 import { eventDayLabel, isEventOnDate, timedSegmentsForDate } from '../lib/eventLayout'
 
 const colorClasses: Record<EventColor, string> = {
@@ -55,6 +57,7 @@ export function DayView({ date, events, onBack, onDateSelect, onAdd, onEventClic
   const dayEvents = events.filter(event => isEventOnDate(event, dayKey))
   const timedEvents = eventLanes(timedSegmentsForDate(dayEvents, dayKey).map(segment => ({ ...segment.event, startTime: `${String(Math.floor(segment.start / 60)).padStart(2, '0')}:${String(segment.start % 60).padStart(2, '0')}`, endTime: segment.end === 1440 ? '24:00' : `${String(Math.floor(segment.end / 60)).padStart(2, '0')}:${String(segment.end % 60).padStart(2, '0')}`, __continuation: segment.continuation } as CalendarEvent & { __continuation: boolean })).sort((a, b) => a.startTime.localeCompare(b.startTime)))
   const allDayEvents = dayEvents.filter(event => event.allDay)
+  const alertItems = timedEvents.map(({ event }) => ({ event, alerts: alertsForRange(weather?.hourly[dayKey], minutes(event.startTime), minutes(event.endTime)) })).filter(item => item.alerts.length > 0)
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: isToday(date) ? new Date().getHours() * 60 - 100 : 8 * 60 }) }, [date])
 
@@ -79,6 +82,7 @@ export function DayView({ date, events, onBack, onDateSelect, onAdd, onEventClic
 
     <div className="shrink-0 px-5 pt-5">
       <WeatherCard date={date} weather={weather?.daily[dayKey]} />
+      <WeatherAlertList items={alertItems} />
       {allDayEvents.length > 0 && <div className="mt-4 flex gap-2 overflow-x-auto pb-1">{allDayEvents.map(event => <div key={event.id} className={`shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold ${colorClasses[event.color]}`}>{eventDayLabel(event, dayKey)}</div>)}</div>}
       <h2 className="mt-8 text-[23px] font-bold">일정</h2>
     </div>
@@ -97,7 +101,7 @@ export function DayView({ date, events, onBack, onDateSelect, onAdd, onEventClic
           const complete = event.checklist.filter(item => item.done).length
           return <button key={event.id} onClick={e => { e.stopPropagation(); onEventClick(event) }} style={{ top, height, width, left }} className={`absolute overflow-hidden rounded-lg border px-3 py-2 text-left ${colorClasses[event.color]}`}>
             <span className={`block truncate text-[16px] font-bold ${short ? 'inline' : ''}`}>{(event as CalendarEvent & { __continuation: boolean }).__continuation ? '(이어짐) ' : ''}{event.title}</span>
-            <span className={`text-[14px] font-medium ${short ? 'ml-1 inline' : 'mt-1 block'}`}>{event.startTime} – {event.endTime}</span>
+            <span className={`text-[14px] font-medium ${short ? 'ml-1 inline' : 'mt-1 block'}`}>{event.startTime} – {event.endTime}{alertItems.find(item => item.event === event)?.alerts.map(alert => <span key={alert.kind} className="ml-1" role="img" aria-label={alert.title}>{alert.icon}</span>)}</span>
             {event.checklist.length > 0 && !short && <span className="absolute right-2 top-2 rounded-full bg-white px-1.5 py-0.5 text-xs font-semibold">☑ {complete}/{event.checklist.length}</span>}
           </button>
         })}

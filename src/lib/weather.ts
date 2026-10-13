@@ -5,6 +5,8 @@ export interface HourlyWeather {
   code: number
   windSpeed: number
   windDirection: number
+  precipitationProbability: number | null
+  pm10: number | null
 }
 
 export interface DailyWeather {
